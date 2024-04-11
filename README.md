@@ -23,7 +23,9 @@ These technologies, when combined, provide a solid foundation for building effic
 
 ## API Documentation
 
-For a detailed description of the API, including routes, parameters, and expected responses, please visit my [API documentation]().
+The project is deployed in a free instance, so the first time you access it, it will take some time to get up. You must be patient and wait a couple of minutes.
+
+For a detailed description of the API, including routes, parameters, and expected responses, please visit my [API documentation](https://bank-accounts-api.onrender.com/api/v1/docs).
 
 This documentation is designed to be easy to navigate, helping you to quickly and effectively integrate with our API.
 
