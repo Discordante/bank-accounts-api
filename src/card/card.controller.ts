@@ -10,7 +10,7 @@ export class CardController {
   constructor(private readonly cardService: CardService) {}
 
   @Get('/:cardId')
-  getCardById(@Param('cardId') cardId: string) {
+  getCardById(@Param('cardId') cardId: number) {
     return this.cardService.findOne(cardId);
   }
 
@@ -21,7 +21,7 @@ export class CardController {
 
   @Patch('/:cardId')
   updateCardSettings(
-    @Param('cardId') cardId: string,
+    @Param('cardId') cardId: number,
     @Body() updateCardDto: UpdateCardDto,
   ) {
     return this.cardService.updateCardById(cardId, updateCardDto);

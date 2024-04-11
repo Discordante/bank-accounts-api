@@ -8,7 +8,7 @@ import * as bcrypt from 'bcrypt';
 export class CardService {
   constructor(private prisma: PrismaService) {}
 
-  async findOne(cardId: string): Promise<Card> {
+  async findOne(cardId: number): Promise<Card> {
     return this.prisma.card.findUnique({
       where: { id: cardId },
     });
@@ -29,7 +29,7 @@ export class CardService {
         isActive: false,
         type: createCardDto.type,
         withdrawalLimit: createCardDto.withdrawalLimit,
-        accountId: '1',
+        account: { connect: { id: 1 } },
       },
     });
 
@@ -37,7 +37,7 @@ export class CardService {
   }
 
   async updateCardById(
-    cardId: string,
+    cardId: number,
     updateCardDto: UpdateCardDto,
   ): Promise<Card> {
     return this.prisma.card.update({
