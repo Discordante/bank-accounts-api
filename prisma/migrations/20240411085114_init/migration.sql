@@ -39,7 +39,7 @@ CREATE TABLE "Account" (
 CREATE TABLE "Transaction" (
     "id" SERIAL NOT NULL,
     "amount" DOUBLE PRECISION NOT NULL,
-    "currency" TEXT NOT NULL,
+    "currency" TEXT NOT NULL DEFAULT 'EUR',
     "type" "TransactionType" NOT NULL,
     "description" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
