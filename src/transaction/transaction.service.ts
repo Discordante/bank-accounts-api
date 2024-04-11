@@ -24,20 +24,24 @@ export class TransactionService {
   }
 
   async createTransaction(createTransactionDto: CreateTransactionDto) {
-    const relatedCard = await this.cardService.findOne(
-      createTransactionDto.cardId,
-    );
-    
-    // TODO: check pin
+    let relatedCard = null;
+    let relatedAccount = null;
 
-    if (!relatedCard.isActive) {
-      //Todo: activate only if there are no previous transactions associated with that card, change PIN and check new Pin
-      await this.cardService.updateCardById(relatedCard.id, { isActive: true });
+    if (
+      createTransactionDto.type === TransactionType.DEPOSIT ||
+      createTransactionDto.type === TransactionType.WITHDRAWAL
+    ) {
+      relatedCard = await this.cardService.findOne(createTransactionDto.cardId);
+      if (!relatedCard.isActive) {
+        await this.cardService.updateCardById(relatedCard.id, {
+          isActive: true,
+        });
+      }
     }
 
-    const relatedAccount = await this.accountService.findOne(
-      relatedCard.accountId,
-    );
+    // TODO: check pin
+
+    relatedAccount = await this.accountService.findOne(relatedCard.accountId);
 
     if (!relatedAccount) {
       throw new NotFoundException(
@@ -56,11 +60,8 @@ export class TransactionService {
           relatedCard,
         );
 
-      case TransactionType.TRANSFER_RECEIVED:
-        return this.handleTransferReceived(createTransactionDto);
-
       case TransactionType.TRANSFER_SENT:
-        return this.handleTransferSent(createTransactionDto);
+        return this.handleTransferSent(relatedAccount, createTransactionDto);
 
       case TransactionType.FEE:
         return this.handleFee(createTransactionDto);
@@ -117,9 +118,40 @@ export class TransactionService {
     return accountUpdated.balance;
   }
 
-  private async handleTransferReceived(dto: CreateTransactionDto) {}
+  private async handleTransferSent(
+    ownerAccount: Account,
+    createTransactionDto: CreateTransactionDto,
+  ) {
+    const { amount, description, externalAccountIBAN } = createTransactionDto;
 
-  private async handleTransferSent(dto: CreateTransactionDto) {}
+    if (ownerAccount.balance < amount) {
+      throw new BadRequestException('Insufficient balance');
+    }
+
+    await this.prisma.account.update({
+      where: { iban: externalAccountIBAN },
+      data: {
+        balance: { increment: amount },
+        transactions: {
+          create: { type: 'TRANSFER_RECEIVED', amount, description },
+        },
+      },
+    });
+
+    const account = await this.prisma.account.update({
+      where: { id: ownerAccount.id },
+      data: {
+        balance: { increment: -amount },
+        transactions: {
+          create: { type: 'TRANSFER_SENT', amount, description },
+        },
+      },
+    });
+
+    // TODO: Add transactions
+
+    return account.balance;
+  }
 
   private async handleFee(dto: CreateTransactionDto) {}
 }
