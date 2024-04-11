@@ -31,7 +31,7 @@ model Card {
   cardNumber      String        @unique
   cardholderName  String
   expirationDate  DateTime
-  cvv             String
+  cvv             Int
   pinHash         String
   isActive        Boolean       @default(false)
   type            CardType
