@@ -12,3 +12,59 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+enum CardType {
+  CREDIT
+  DEBIT
+}
+
+enum TransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  TRANSFER_RECEIVED
+  TRANSFER_SENT
+  FEE
+}
+
+model Card {
+  id              String        @id @default(uuid())
+  cardNumber      String        @unique
+  cardholderName  String
+  expirationDate  DateTime
+  cvv             String
+  pinHash         String
+  isActive        Boolean       @default(false)
+  type            CardType
+  withdrawalLimit Float         @default(500.0)
+  account         Account       @relation(fields: [accountId], references: [id])
+  accountId       String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  Transaction     Transaction[]
+}
+
+model Account {
+  id        String   @id @default(uuid())
+  iban      String   @unique
+  balance   Float    @default(0.0)
+  currency  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones
+  cards        Card[]
+  transactions Transaction[]
+}
+
+model Transaction {
+  id          String          @id @default(uuid())
+  amount      Float
+  currency    String
+  type        TransactionType
+  description String?
+  createdAt   DateTime        @default(now())
+  card        Card?           @relation(fields: [cardId], references: [id])
+  cardId      String?
+  account     Account         @relation(fields: [accountId], references: [id])
+  accountId   String
+}
