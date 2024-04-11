@@ -31,5 +31,5 @@ export class CreateTransactionDto {
   @IsNumber()
   @IsDefined()
   @IsNotEmpty()
-  accountId: number;
+  cardId: number;
 }
