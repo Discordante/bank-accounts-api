@@ -1,14 +1,20 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { TransactionType } from '@prisma/client';
 import { CardService } from 'src/card/card.service';
+import { AccountService } from 'src/account/account.service';
 
 @Injectable()
 export class TransactionService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly cardService: CardService,
+    private readonly accountService: AccountService,
   ) {}
 
   async findByAccount(accountId: number) {
@@ -36,7 +42,10 @@ export class TransactionService {
         );
 
       case TransactionType.WITHDRAWAL:
-        return this.handleWithdrawal(createTransactionDto);
+        return this.handleWithdrawal(
+          createTransactionDto,
+          relatedAccount.accountId,
+        );
 
       case TransactionType.TRANSFER_RECEIVED:
         return this.handleTransferReceived(createTransactionDto);
@@ -48,7 +57,7 @@ export class TransactionService {
         return this.handleFee(createTransactionDto);
 
       default:
-        throw new Error('Tipo de transacción no soportado');
+        throw new BadRequestException('Transaction type not supported');
     }
   }
 
@@ -58,23 +67,41 @@ export class TransactionService {
   ) {
     const { type, amount, description } = createTransactionDto;
 
-    const account = await this.prisma.account.update({
-      where: { id: accountId },
-      data: {
-        balance: { increment: amount },
-        transactions: {
-          create: {
-            type,
-            amount,
-            description,
-          },
-        },
-      },
+    // TODO: Add transactions
+    const account = await this.accountService.update(accountId, {
+      balance: { increment: amount },
     });
+
+    await this.prisma.transaction.create({
+      data: { type, amount, description, accountId },
+    });
+
     return account.balance;
   }
 
-  private async handleWithdrawal(dto: CreateTransactionDto) {}
+  private async handleWithdrawal(
+    createTransactionDto: CreateTransactionDto,
+    accountId: number,
+  ) {
+    const { type, amount, description } = createTransactionDto;
+
+    // Verificar si hay saldo suficiente
+    const existingAccount = await this.accountService.findOne(accountId);
+    if (existingAccount.balance < amount) {
+      throw new BadRequestException('Insufficient balance');
+    }
+
+    // TODO: Add transactions
+    const account = await this.accountService.update(accountId, {
+      balance: { increment: -amount },
+    });
+
+    await this.prisma.transaction.create({
+      data: { type, amount, description, accountId },
+    });
+
+    return account.balance;
+  }
 
   private async handleTransferReceived(dto: CreateTransactionDto) {}
 
