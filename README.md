@@ -1,7 +1,7 @@
 ![GitHub repo size](https://img.shields.io/github/repo-size/Discordante/bank-accounts-api)
 
 # Bank API
-https://bank-accounts-api.onrender.com
+https://bank-accounts-api.onrender.com/api/v1/docs
 ## Technologies Used
 - **NestJS**
 
