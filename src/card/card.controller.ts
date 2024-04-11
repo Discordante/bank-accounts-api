@@ -1,8 +1,10 @@
 import { Controller, Patch, Body, Param, Get } from '@nestjs/common';
 import { CardService } from './card.service';
 import { UpdateCardDto } from './dto/update-card.dto';
+import { ApiTags } from '@nestjs/swagger';
 
-@Controller('credit-cards')
+@ApiTags('Cards')
+@Controller('cards')
 export class CardController {
   constructor(private readonly cardService: CardService) {}
 
