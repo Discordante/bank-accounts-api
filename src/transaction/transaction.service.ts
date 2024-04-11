@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
-import { TransactionType } from '@prisma/client';
+import { Account, Card, CardType, TransactionType } from '@prisma/client';
 import { CardService } from 'src/card/card.service';
 import { AccountService } from 'src/account/account.service';
 
@@ -24,8 +24,19 @@ export class TransactionService {
   }
 
   async createTransaction(createTransactionDto: CreateTransactionDto) {
-    const relatedAccount = await this.cardService.findOne(
+    const relatedCard = await this.cardService.findOne(
       createTransactionDto.cardId,
+    );
+    
+    // TODO: check pin
+
+    if (!relatedCard.isActive) {
+      //Todo: activate only if there are no previous transactions associated with that card, change PIN and check new Pin
+      await this.cardService.updateCardById(relatedCard.id, { isActive: true });
+    }
+
+    const relatedAccount = await this.accountService.findOne(
+      relatedCard.accountId,
     );
 
     if (!relatedAccount) {
@@ -36,15 +47,13 @@ export class TransactionService {
 
     switch (createTransactionDto.type) {
       case TransactionType.DEPOSIT:
-        return this.handleDeposit(
-          createTransactionDto,
-          relatedAccount.accountId,
-        );
+        return this.handleDeposit(createTransactionDto, relatedAccount.id);
 
       case TransactionType.WITHDRAWAL:
         return this.handleWithdrawal(
           createTransactionDto,
-          relatedAccount.accountId,
+          relatedAccount,
+          relatedCard,
         );
 
       case TransactionType.TRANSFER_RECEIVED:
@@ -81,26 +90,31 @@ export class TransactionService {
 
   private async handleWithdrawal(
     createTransactionDto: CreateTransactionDto,
-    accountId: number,
+    account: Account,
+    card: Card,
   ) {
     const { type, amount, description } = createTransactionDto;
 
-    // Verificar si hay saldo suficiente
-    const existingAccount = await this.accountService.findOne(accountId);
-    if (existingAccount.balance < amount) {
+    if (card.withdrawalLimit < amount) {
+      throw new BadRequestException(
+        'Card limit is less than the amount you wish to withdraw',
+      );
+    }
+
+    if (account.balance < amount && card.type !== CardType.CREDIT) {
       throw new BadRequestException('Insufficient balance');
     }
 
     // TODO: Add transactions
-    const account = await this.accountService.update(accountId, {
+    const accountUpdated = await this.accountService.update(account.id, {
       balance: { increment: -amount },
     });
 
     await this.prisma.transaction.create({
-      data: { type, amount, description, accountId },
+      data: { type, amount, description, accountId: account.id },
     });
 
-    return account.balance;
+    return accountUpdated.balance;
   }
 
   private async handleTransferReceived(dto: CreateTransactionDto) {}

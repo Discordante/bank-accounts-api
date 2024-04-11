@@ -32,4 +32,10 @@ export class CreateTransactionDto {
   @IsDefined()
   @IsNotEmpty()
   cardId: number;
+
+  @ApiProperty({ example: 123 })
+  @IsNumber()
+  @IsDefined()
+  @IsNotEmpty()
+  pin: number;
 }
