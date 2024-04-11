@@ -1,0 +1,85 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum CardType {
+  CREDIT
+  DEBIT
+}
+
+enum TransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  TRANSFER_RECEIVED
+  TRANSFER_SENT
+  FEE
+}
+
+model Card {
+  id              Int           @id @default(autoincrement())
+  cardNumber      String        @unique
+  cardholderName  String
+  expirationDate  DateTime
+  cvv             Int
+  pinHash         String
+  isActive        Boolean       @default(false)
+  type            CardType
+  withdrawalLimit Float         @default(500.0)
+  account         Account       @relation(fields: [accountId], references: [id])
+  accountId       Int
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  Transaction     Transaction[]
+}
+
+model Account {
+  id           Int           @id @default(autoincrement())
+  iban         String        @unique
+  balance      Float         @default(0.0)
+  currency     String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  cards        Card[]
+  transactions Transaction[]
+  Bank         Bank?         @relation(fields: [bankId], references: [id])
+  bankId       Int?
+}
+
+model Transaction {
+  id          Int             @id @default(autoincrement())
+  amount      Float
+  currency    String          @default("EUR")
+  type        TransactionType
+  description String?
+  createdAt   DateTime        @default(now())
+  card        Card?           @relation(fields: [cardId], references: [id])
+  cardId      Int?
+
+  accountId Int
+  Account   Account @relation(fields: [accountId], references: [id])
+}
+
+model Bank {
+  id       Int       @id @default(autoincrement())
+  name     String
+  atms     ATM[]
+  accounts Account[]
+}
+
+model ATM {
+  id     Int    @id @default(autoincrement())
+  name   String
+  bankId Int
+  bank   Bank   @relation(fields: [bankId], references: [id])
+}
